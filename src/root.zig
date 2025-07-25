@@ -87,3 +87,137 @@ test "slugify: skip emoji and uppercase format" {
     defer allocator.free(result);
     try std.testing.expectEqualStrings("COOL-STUFF", result);
 }
+
+test "slugify: lowercase format" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("HELLO World", SlugifyOptions{ .format = SlugifyFormat.lowercase }, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
+
+test "slugify: uppercase format" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello world", SlugifyOptions{ .format = SlugifyFormat.uppercase }, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("HELLO-WORLD", result);
+}
+
+test "slugify: default format preserves case" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("Hello WORLD", SlugifyOptions{ .format = SlugifyFormat.default }, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("Hello-WORLD", result);
+}
+
+test "slugify: underscore separator" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello world", SlugifyOptions{ .seperator = '_' }, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello_world", result);
+}
+
+test "slugify: dot separator" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello world", SlugifyOptions{ .seperator = '.' }, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello.world", result);
+}
+
+test "slugify: plus separator" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello world", SlugifyOptions{ .seperator = '+' }, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello+world", result);
+}
+
+test "slugify: empty string" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("", result);
+}
+
+test "slugify: only separators" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("!@#$%", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("", result);
+}
+
+test "slugify: only alphanumeric" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello123world", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello123world", result);
+}
+
+test "slugify: numbers and letters" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("version-2.0.1", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("version-2-0-1", result);
+}
+
+test "slugify: leading separators" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("!!!hello world", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
+
+test "slugify: trailing separators" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello world!!!", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
+
+test "slugify: multiple consecutive separators" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello---world", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
+
+test "slugify: mixed separators" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("hello_world.test", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world-test", result);
+}
+
+test "slugify: single character" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("a", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("a", result);
+}
+
+test "slugify: single separator" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("-", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("", result);
+}
+
+test "slugify: whitespace handling" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("  hello   world  ", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
+
+test "slugify: complex mixed case with custom separator" {
+    const allocator = std.testing.allocator;
+    const options = SlugifyOptions{ .format = SlugifyFormat.default, .seperator = '_' };
+    const result = try slugify("My-AWESOME_Project.v2", options, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("My_AWESOME_Project_v2", result);
+}
+
+test "slugify: unicode and emoji removal" {
+    const allocator = std.testing.allocator;
+    const result = try slugify("Hello 🌍 World 👋", SlugifyOptions{}, allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
