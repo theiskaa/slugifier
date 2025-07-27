@@ -124,7 +124,7 @@ pub fn main() !void {
     };
 
     const slug_options = slugifier.SlugifyOptions{
-        .seperator = cli_options.separator,
+        .separator = cli_options.separator,
         .format = cli_options.format,
     };
 

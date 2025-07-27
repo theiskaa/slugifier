@@ -14,7 +14,7 @@ pub const SlugifyFormat = enum {
 /// Configuration options for slug generation.
 pub const SlugifyOptions = struct {
     /// Character to use as separator between words (default: '-')
-    seperator: u8 = '-',
+    separator: u8 = '-',
     /// Text case format to apply (default: lowercase)
     format: SlugifyFormat = SlugifyFormat.lowercase,
 };
@@ -27,7 +27,7 @@ pub fn slugify(input: []const u8, options: SlugifyOptions, allocator: std.mem.Al
     var buffer = std.ArrayList(u8).init(allocator);
     defer buffer.deinit();
 
-    var lastWasSeperator = false;
+    var lastWasSeparator = false;
     for (input) |c| {
         if (ascii.isAlphanumeric(c)) {
             switch (options.format) {
@@ -35,17 +35,17 @@ pub fn slugify(input: []const u8, options: SlugifyOptions, allocator: std.mem.Al
                 SlugifyFormat.uppercase => try buffer.append(ascii.toUpper(c)),
                 SlugifyFormat.default => try buffer.append(c),
             }
-            lastWasSeperator = false;
+            lastWasSeparator = false;
             continue;
         }
 
-        if (isSeparatorChar(c) and !lastWasSeperator and buffer.items.len > 0) {
-            try buffer.append(options.seperator);
-            lastWasSeperator = true;
+        if (isSeparatorChar(c) and !lastWasSeparator and buffer.items.len > 0) {
+            try buffer.append(options.separator);
+            lastWasSeparator = true;
         }
     }
 
-    if (buffer.items.len > 0 and buffer.items[buffer.items.len - 1] == options.seperator) {
+    if (buffer.items.len > 0 and buffer.items[buffer.items.len - 1] == options.separator) {
         _ = buffer.pop();
     }
 
@@ -66,9 +66,9 @@ test "slugify: basic sentence with default config" {
     try std.testing.expectEqualStrings("hello-world", result);
 }
 
-test "slugify: basic sentence with default format and custom seperator" {
+test "slugify: basic sentence with default format and custom separator" {
     const allocator = std.testing.allocator;
-    const options = SlugifyOptions{ .format = SlugifyFormat.default, .seperator = '_' };
+    const options = SlugifyOptions{ .format = SlugifyFormat.default, .separator = '_' };
     const result = try slugify("Hello, World!", options, allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("Hello_World", result);
@@ -111,21 +111,21 @@ test "slugify: default format preserves case" {
 
 test "slugify: underscore separator" {
     const allocator = std.testing.allocator;
-    const result = try slugify("hello world", SlugifyOptions{ .seperator = '_' }, allocator);
+    const result = try slugify("hello world", SlugifyOptions{ .separator = '_' }, allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("hello_world", result);
 }
 
 test "slugify: dot separator" {
     const allocator = std.testing.allocator;
-    const result = try slugify("hello world", SlugifyOptions{ .seperator = '.' }, allocator);
+    const result = try slugify("hello world", SlugifyOptions{ .separator = '.' }, allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("hello.world", result);
 }
 
 test "slugify: plus separator" {
     const allocator = std.testing.allocator;
-    const result = try slugify("hello world", SlugifyOptions{ .seperator = '+' }, allocator);
+    const result = try slugify("hello world", SlugifyOptions{ .separator = '+' }, allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("hello+world", result);
 }
@@ -209,7 +209,7 @@ test "slugify: whitespace handling" {
 
 test "slugify: complex mixed case with custom separator" {
     const allocator = std.testing.allocator;
-    const options = SlugifyOptions{ .format = SlugifyFormat.default, .seperator = '_' };
+    const options = SlugifyOptions{ .format = SlugifyFormat.default, .separator = '_' };
     const result = try slugify("My-AWESOME_Project.v2", options, allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("My_AWESOME_Project_v2", result);
