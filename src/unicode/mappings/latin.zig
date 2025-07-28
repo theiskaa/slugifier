@@ -110,6 +110,58 @@ pub fn mapSpanishCodepoint(codepoint: u21) ?[]const u8 {
     };
 }
 
+/// Italian-specific character mappings
+pub fn mapItalianCodepoint(codepoint: u21) ?[]const u8 {
+    return switch (codepoint) {
+        // Italian doesn't have many special characters beyond standard Latin
+        // Most Italian characters are handled by the generic Latin mappings
+        else => null,
+    };
+}
+
+/// Portuguese-specific character mappings
+pub fn mapPortugueseCodepoint(codepoint: u21) ?[]const u8 {
+    return switch (codepoint) {
+        // Portuguese uses mostly standard Latin characters
+        // Some regional variations might need specific handling
+        else => null,
+    };
+}
+
+/// Dutch-specific character mappings
+pub fn mapDutchCodepoint(codepoint: u21) ?[]const u8 {
+    return switch (codepoint) {
+        // Dutch uses mostly standard Latin characters
+        // The IJ digraph is typically handled as two separate letters
+        else => null,
+    };
+}
+
+/// Polish-specific character mappings
+pub fn mapPolishCodepoint(codepoint: u21) ?[]const u8 {
+    return switch (codepoint) {
+        0x0104 => "A", // Ą -> A
+        0x0105 => "a", // ą -> a
+        0x0106 => "C", // Ć -> C
+        0x0107 => "c", // ć -> c
+        0x0118 => "E", // Ę -> E
+        0x0119 => "e", // ę -> e
+        0x0141 => "L", // Ł -> L
+        0x0142 => "l", // ł -> l
+        0x0143 => "N", // Ń -> N
+        0x0144 => "n", // ń -> n
+        0x00D3 => "O", // Ó -> O
+        0x00F3 => "o", // ó -> o
+        0x015A => "S", // Ś -> S
+        0x015B => "s", // ś -> s
+        0x0179 => "Z", // Ź -> Z
+        0x017A => "z", // ź -> z
+        0x017B => "Z", // Ż -> Z
+        0x017C => "z", // ż -> z
+        else => null,
+    };
+}
+
 test "latin mappings - basic accents" {
     try std.testing.expectEqualStrings("a", mapLatinCodepoint(0xE0).?); // à
     try std.testing.expectEqualStrings("e", mapLatinCodepoint(0xE9).?); // é
@@ -151,4 +203,43 @@ test "german mappings" {
 test "unmapped characters return null" {
     try std.testing.expectEqual(@as(?[]const u8, null), mapLatinCodepoint(0x4E00)); // Chinese character
     try std.testing.expectEqual(@as(?[]const u8, null), mapLatinCodepoint('a')); // Regular ASCII
+}
+
+test "italian mappings" {
+    // Italian mostly uses standard Latin mappings
+    try std.testing.expectEqual(@as(?[]const u8, null), mapItalianCodepoint(0x00E0)); // à
+    try std.testing.expectEqual(@as(?[]const u8, null), mapItalianCodepoint(0x00E9)); // é
+}
+
+test "portuguese mappings" {
+    // Portuguese mostly uses standard Latin mappings
+    try std.testing.expectEqual(@as(?[]const u8, null), mapPortugueseCodepoint(0x00E7)); // ç
+    try std.testing.expectEqual(@as(?[]const u8, null), mapPortugueseCodepoint(0x00E3)); // ã
+}
+
+test "dutch mappings" {
+    // Dutch mostly uses standard Latin mappings
+    try std.testing.expectEqual(@as(?[]const u8, null), mapDutchCodepoint(0x00EB)); // ë
+    try std.testing.expectEqual(@as(?[]const u8, null), mapDutchCodepoint(0x00EF)); // ï
+}
+
+test "polish mappings" {
+    try std.testing.expectEqualStrings("A", mapPolishCodepoint(0x0104).?); // Ą
+    try std.testing.expectEqualStrings("a", mapPolishCodepoint(0x0105).?); // ą
+    try std.testing.expectEqualStrings("C", mapPolishCodepoint(0x0106).?); // Ć
+    try std.testing.expectEqualStrings("c", mapPolishCodepoint(0x0107).?); // ć
+    try std.testing.expectEqualStrings("E", mapPolishCodepoint(0x0118).?); // Ę
+    try std.testing.expectEqualStrings("e", mapPolishCodepoint(0x0119).?); // ę
+    try std.testing.expectEqualStrings("L", mapPolishCodepoint(0x0141).?); // Ł
+    try std.testing.expectEqualStrings("l", mapPolishCodepoint(0x0142).?); // ł
+    try std.testing.expectEqualStrings("N", mapPolishCodepoint(0x0143).?); // Ń
+    try std.testing.expectEqualStrings("n", mapPolishCodepoint(0x0144).?); // ń
+    try std.testing.expectEqualStrings("O", mapPolishCodepoint(0x00D3).?); // Ó
+    try std.testing.expectEqualStrings("o", mapPolishCodepoint(0x00F3).?); // ó
+    try std.testing.expectEqualStrings("S", mapPolishCodepoint(0x015A).?); // Ś
+    try std.testing.expectEqualStrings("s", mapPolishCodepoint(0x015B).?); // ś
+    try std.testing.expectEqualStrings("Z", mapPolishCodepoint(0x0179).?); // Ź
+    try std.testing.expectEqualStrings("z", mapPolishCodepoint(0x017A).?); // ź
+    try std.testing.expectEqualStrings("Z", mapPolishCodepoint(0x017B).?); // Ż
+    try std.testing.expectEqualStrings("z", mapPolishCodepoint(0x017C).?); // ż
 }
