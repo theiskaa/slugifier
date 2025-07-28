@@ -7,7 +7,7 @@
 
 </p>
 
-slugifier is a fast and simple slug generation library written in Zig. It converts text into URL-friendly slugs with clean, reliable performance and straightforward configuration options.
+slugifier is a fast and simple slug generation library written in Zig and for Zig. It converts text into URL-friendly slugs with clean, reliable performance and straightforward configuration options.
 
 Currently, the library provides solid basic slug generation with customizable separators, case formatting, and text normalization. While it handles ASCII text excellently, we're actively developing comprehensive Unicode support, language-specific transliteration, and advanced features that will make this the fastest and most feature-complete slug library available.
 
@@ -21,7 +21,7 @@ This project includes both a command-line tool and a library. The CLI provides i
 - Compile-time slug generation
 - C FFI and bindings for other languages
 
-The library is built in Zig for optimal performance and memory safety, with a clean API that's easy to integrate into any project. See our [roadmap](docs/roadmap.md) for detailed information about upcoming features and development timeline.
+See our [roadmap](docs/roadmap.md) for detailed information about upcoming features and development timeline.
 
 ## Install
 
