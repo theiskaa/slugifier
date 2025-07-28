@@ -7,11 +7,13 @@
 
 </p>
 
-slugifier is a fast and simple slug generation library for Zig. It converts text into URL-friendly slugs with clean, reliable performance and straightforward configuration options.
+slugifier is a fast and comprehensive slug generation library for Zig that converts text into URL-friendly slugs with exceptional performance and extensive Unicode support. The library provides robust text processing with customizable separators, case formatting, and advanced transliteration capabilities across multiple writing systems.
 
-The library provides solid basic slug generation with customizable separators, case formatting, and text normalization. It handles ASCII text excellently and includes comprehensive Unicode support with transliteration capabilities. The project includes both a command-line tool and a library. The CLI provides instant slug generation for quick tasks and automation scripts. The library offers programmatic access with configurable options for separators, case formatting, and Unicode processing.
+The core functionality centers around converting any text input into clean, web-safe slugs. The library handles ASCII text with optimal performance while providing comprehensive Unicode support through an advanced transliteration engine. This engine supports over 20 languages across multiple script families including Latin, Cyrillic, CJK (Chinese, Japanese, Korean), and RTL scripts (Arabic, Hebrew, Persian). The transliteration system is culturally aware, applying language-specific conversion rules that preserve linguistic accuracy rather than generic character mappings.
 
-The library is fast and reliable,It handles comprehensive text processing including Unicode transliteration, case conversion, and separator normalization. Configuration is flexible through struct options that can be customized for different use cases. The library supports multiple Unicode handling modes and can generate slugs optimized for URLs, filenames, or database keys.
+The library offers three Unicode processing modes to suit different requirements. Strip mode removes Unicode characters entirely for ASCII-only output. Preserve mode maintains Unicode characters as-is for international slug generation. Transliterate mode converts Unicode characters to ASCII equivalents using sophisticated language-specific mappings that understand cultural context. For example, German ü becomes "ue" rather than "u", while Swedish treats the same character as "u" according to local conventions.
+
+The project provides both a command-line tool for quick slug generation and automation scripts, plus a library interface for programmatic integration. The CLI delivers instant results for one-off conversions and batch processing. The library API offers extensive configuration through struct options supporting custom separators, case formatting modes, language selection, and Unicode processing preferences. All operations maintain memory safety and provide error handling for invalid configurations.
 
 ## Install
 
@@ -47,49 +49,65 @@ git submodule add https://github.com/theiskaa/slugifier.git libs/slugifier
 ```
 
 ## Usage
-The library exposes a main `slugify()` function that accepts raw text and configuration options. It handles all intermediate processing steps internally. The function leverages Unicode transliteration to convert accented characters to ASCII equivalents, applies case formatting, and normalizes separators.
+The library exposes a main `slugify()` function that accepts raw text and configuration options through a `SlugifyOptions` struct. The function handles all text processing internally including Unicode detection, script classification, language-specific transliteration, case conversion, and separator normalization. The implementation leverages a sophisticated transliteration engine that maps Unicode characters to appropriate ASCII equivalents based on linguistic and cultural context.
 
-The `slugify()` function returns an allocated string that the caller must free. The function uses a `SlugifyOptions` struct for configuration, supporting custom separators, case formatting, and Unicode handling modes.
+The `slugify()` function returns an allocated string that the caller must manage. Memory allocation follows Zig conventions with explicit allocator passing for predictable memory management. The function performs comprehensive input validation and provides meaningful error codes for invalid configurations.
 
-The library uses a `TransliterationMode` enum to specify how Unicode characters should be processed. This supports three approaches: strip mode removes Unicode characters completely, preserve mode keeps Unicode as-is, and transliterate mode converts Unicode to ASCII equivalents.
+Configuration options include separator character selection (any non-alphanumeric ASCII character), case formatting (lowercase, uppercase, or preserve original), Unicode processing mode (strip, preserve, or transliterate), and optional language specification for culturally accurate transliteration. When a language is specified, the transliterator applies language-specific character mappings while falling back to generic mappings for characters outside that language's scope.
 
 ```zig
 const slugifier = @import("slugifier");
 
+// Basic usage with default options
+const result = try slugifier.slugify("Hello, World!", .{}, allocator);
+defer allocator.free(result);
+// Result: "hello-world"
+
+// Advanced configuration with language-specific transliteration
 const options = slugifier.SlugifyOptions{
-    .separator = '-',
-    .format = .lowercase,
+    .separator = '_',
+    .format = .uppercase,
     .unicode_mode = .transliterate,
+    .language = .de, // German language mappings
 };
 
-const result = try slugifier.slugify("Café naïve", options, allocator);
-defer allocator.free(result);
-// Result: "cafe-naive"
+const german_result = try slugifier.slugify("Müllerstraße", options, allocator);
+defer allocator.free(german_result);
+// Result: "MUELLERSTRASSE"
+
+// Mixed script handling
+const mixed_result = try slugifier.slugify("Hello 你好 Привет", .{}, allocator);
+defer allocator.free(mixed_result);
+// Result: "hello-nihao-privet"
 ```
 
-For advanced usage, you can work directly with the transliterator component. Create a transliterator instance with specific options, then call the `slugify()` method to process text. This approach provides fine-grained control over the Unicode processing pipeline.
+The library automatically detects and processes multiple Unicode scripts within the same input. When language-specific settings are configured, the transliterator prioritizes those mappings while falling back to generic script mappings for characters outside the specified language. This approach ensures comprehensive text processing regardless of input complexity.
 
 ## Unicode Support
 
-The slugifier library includes comprehensive Unicode support through a transliteration engine. The engine maps Unicode characters to ASCII equivalents based on language-specific rules and cultural context.
+The slugifier library provides comprehensive Unicode support through an advanced transliteration engine that handles multiple writing systems with cultural accuracy. The system currently supports over 20 languages across four major script families: Latin, Cyrillic, CJK (Chinese, Japanese, Korean), and RTL scripts (Arabic, Hebrew, Persian).
 
-The transliteration system is modular and extensible. New language mappings can be added by creating mapping functions in the `src/unicode/mappings/` directory. Each mapping function should accept a Unicode codepoint and return an optional ASCII string replacement.
+Supported languages include European languages (German, French, Spanish, Italian, Portuguese, Dutch), Slavic languages (Russian, Ukrainian, Polish, Czech, Belarusian, Serbian), Nordic languages (Swedish, Norwegian, Danish, Finnish), East Asian languages (Chinese Simplified/Traditional, Japanese, Korean), and Middle Eastern languages (Arabic, Hebrew, Persian/Farsi). Each language implementation follows proper transliteration standards and cultural conventions rather than generic character substitution.
 
-To add support for a new language, create a new file in the mappings directory following the pattern of existing files. Define a mapping function that handles the specific Unicode characters for that language. The function should return null for unmapped characters, allowing fallback to generic mappings.
+The transliteration system operates through a hierarchical mapping approach. When a language is specified, the engine first attempts language-specific character mappings, then falls back to generic script mappings, ensuring comprehensive coverage for mixed-language content. For example, German-specific mappings handle ü as "ue" and ß as "ss", while generic Latin mappings provide broader coverage for other accented characters.
 
-Language-specific mappings can override generic Latin mappings for cultural accuracy. For example, German mappings convert ü to "ue" instead of "u", while Swedish mappings keep ü as "u". These cultural differences are important for proper slug generation in different locales.
+The Unicode processing pipeline includes automatic script detection, codepoint classification, and context-aware transliteration. The system can process text containing multiple scripts simultaneously, applying appropriate conversion rules for each script type. This approach enables accurate slug generation for international content while maintaining performance and reliability.
 
-The transliterator automatically selects appropriate mappings based on the configured language option. When no specific language is set, it uses generic Latin mappings that work well for most European languages.
+The transliteration mappings are modular and extensible. Adding support for new languages requires creating mapping functions in the `src/unicode/mappings/` directory that accept Unicode codepoints and return ASCII string replacements. The system automatically integrates new mappings into the fallback hierarchy without requiring changes to the core transliteration logic.
 
 ## Configuration
 
-The slugifier library supports extensive customization through the `SlugifyOptions` struct. Configuration includes separator character selection, case formatting options, and Unicode processing modes.
+The slugifier library provides extensive customization through the `SlugifyOptions` struct with four primary configuration categories: separator selection, case formatting, Unicode processing mode, and language specification.
 
-The separator option controls the character used between words in the generated slug. Valid separators are any non-alphanumeric ASCII character. The format option controls text case conversion with three modes: lowercase converts all text to lowercase, uppercase converts all text to uppercase, and default preserves original casing.
+The separator option accepts any non-alphanumeric ASCII character to join words in the generated slug. Common choices include hyphens, underscores, dots, and plus signs. The library validates separator characters at runtime, rejecting alphanumeric characters that would conflict with slug content.
 
-The unicode_mode option controls Unicode character processing. Strip mode removes all Unicode characters, preserve mode keeps Unicode as-is, and transliterate mode converts Unicode to ASCII equivalents using language-specific mappings.
+Case formatting operates through three modes: lowercase converts all output to lowercase for standard web URLs, uppercase converts all output to uppercase for specific branding requirements, and default preserves the original character casing for mixed-case applications. Case formatting applies after Unicode transliteration, ensuring consistent output regardless of input script.
 
-Error handling is graceful - if invalid options are provided, the library returns appropriate error codes rather than crashing. The validate() method on SlugifyOptions ensures configuration is correct before processing begins.
+Unicode processing mode determines how non-ASCII characters are handled. Strip mode removes Unicode characters entirely, producing ASCII-only output suitable for legacy systems. Preserve mode maintains Unicode characters unchanged, enabling international slugs for modern applications. Transliterate mode converts Unicode characters to ASCII equivalents using sophisticated language-aware mappings, balancing accessibility with linguistic accuracy.
+
+Language specification enables culturally accurate transliteration by applying language-specific character mappings. When specified, the system prioritizes language mappings while maintaining fallback support for characters outside that language scope. This approach ensures optimal results for primary content language while handling multilingual input gracefully.
+
+The configuration system includes comprehensive validation with meaningful error messages. Invalid separator characters, conflicting options, or malformed configurations are detected before processing begins, preventing runtime failures and ensuring predictable behavior across all usage scenarios.
 
 ## Contributing
 For information regarding contributions, please refer to [CONTRIBUTING.md](CONTRIBUTING.md) file.
