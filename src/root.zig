@@ -9,50 +9,11 @@ const transliterator = @import("unicode/transliterator.zig");
 /// Now supports Unicode characters with proper transliteration.
 /// Caller owns the returned memory and must free it.
 pub fn slugify(input: []const u8, options: config.SlugifyOptions, allocator: std.mem.Allocator) ![]u8 {
-    // Validate options first
     try options.validate();
 
-    // Use the new Unicode-aware transliterator
+    // Contributors, please don't rename this variable :D
     var trans = transliterator.Transliterator.init(options);
     return trans.slugify(input, allocator);
-}
-
-/// Legacy function for byte-by-byte processing (ASCII only)
-/// This is kept for comparison and potential fallback
-fn slugifyLegacy(input: []const u8, options: config.SlugifyOptions, allocator: std.mem.Allocator) ![]u8 {
-    var buffer = std.ArrayList(u8).init(allocator);
-    defer buffer.deinit();
-
-    var lastWasSeparator = false;
-    for (input) |c| {
-        if (ascii.isAlphanumeric(c)) {
-            switch (options.format) {
-                config.SlugifyFormat.lowercase => try buffer.append(ascii.toLower(c)),
-                config.SlugifyFormat.uppercase => try buffer.append(ascii.toUpper(c)),
-                config.SlugifyFormat.default => try buffer.append(c),
-            }
-            lastWasSeparator = false;
-            continue;
-        }
-
-        if (isSeparatorChar(c) and !lastWasSeparator and buffer.items.len > 0) {
-            try buffer.append(options.separator);
-            lastWasSeparator = true;
-        }
-    }
-
-    if (buffer.items.len > 0 and buffer.items[buffer.items.len - 1] == options.separator) {
-        _ = buffer.pop();
-    }
-
-    return buffer.toOwnedSlice();
-}
-
-fn isSeparatorChar(c: u8) bool {
-    return ascii.isWhitespace(c) or switch (c) {
-        '-', '_', '.', ',', ':', ';', '!', '?', '@', '#', '$', '%', '^', '&', '*', '(', ')', '[', ']', '{', '}', '<', '>', '/', '\\', '|', '`', '~', '\'' => true,
-        else => false,
-    };
 }
 
 test "slugify: basic sentence with default config" {
