@@ -37,6 +37,9 @@ pub const Language = enum {
     no, // Norwegian
     da, // Danish
     fi, // Finnish
+    zh, // Chinese (Simplified & Traditional)
+    ja, // Japanese
+    ko, // Korean
 };
 
 /// Configuration options for slug generation.
