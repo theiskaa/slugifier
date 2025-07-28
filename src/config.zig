@@ -47,14 +47,11 @@ pub const Language = enum {
 
 /// Configuration options for slug generation.
 pub const SlugifyOptions = struct {
-    /// Character to use as separator between words (default: '-')
     separator: u8 = '-',
-    /// Text case format to apply (default: lowercase)
     format: SlugifyFormat = .lowercase,
-    /// Unicode handling mode (default: transliterate)
     unicode_mode: TransliterationMode = .transliterate,
-    /// Language to use for transliteration (default: null)
     language: ?Language = null,
+    max_length: ?usize = null,
 
     pub fn validate(self: SlugifyOptions) !void {
         // Ensure separator is valid ASCII character and not alphanumeric

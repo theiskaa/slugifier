@@ -30,6 +30,7 @@ const CliOptions = struct {
     text: [:0]const u8,
     separator: u8 = '-',
     format: slugifier.SlugifyFormat = .lowercase,
+    max_length: ?usize = null,
 };
 
 fn printUsage() void {
@@ -124,6 +125,7 @@ pub fn main() !void {
     };
 
     const slug_options = slugifier.SlugifyOptions{
+        .max_length = cli_options.max_length,
         .separator = cli_options.separator,
         .format = cli_options.format,
     };

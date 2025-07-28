@@ -3,6 +3,9 @@ const ascii = std.ascii;
 const config = @import("config.zig");
 const transliterator = @import("unicode/transliterator.zig");
 
+pub const SlugifyFormat = config.SlugifyFormat;
+pub const SlugifyOptions = config.SlugifyOptions;
+
 /// Converts a string to a URL-friendly slug by keeping only alphanumeric characters
 /// and replacing separator sequences with a single separator character. The function
 /// applies the specified text case format and removes any leading or trailing separators.

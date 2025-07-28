@@ -47,7 +47,12 @@ pub const Transliterator = struct {
             }
         }
 
-        return buffer.toOwnedSlice();
+        var result = try buffer.toOwnedSlice();
+        if (self.options.max_length) |max_len| {
+            result = try self.truncate(result, max_len, allocator);
+        }
+
+        return result;
     }
 
     /// Handle Unicode characters based on the configured mode
@@ -128,28 +133,43 @@ pub const Transliterator = struct {
                 .he => rtl.mapHebrewCodepoint(cp),
                 .fa => rtl.mapPersianCodepoint(cp),
             };
-            if (lang_mapping) |mapping| {
-                return mapping;
+            if (lang_mapping) |mapping| return mapping;
+        }
+
+        if (latin.mapLatinCodepoint(cp)) |mapping| return mapping;
+        if (cyrillic.mapCyrillicCodepoint(cp)) |mapping| return mapping;
+        if (cjk.mapCJKCodepoint(cp)) |mapping| return mapping;
+        if (rtl.mapRTLCodepoint(cp)) |mapping| return mapping;
+
+        return null;
+    }
+
+    fn truncate(self: *Transliterator, slug: []u8, max_length: usize, allocator: std.mem.Allocator) ![]u8 {
+        if (slug.len <= max_length) return slug;
+
+        if (max_length == 0) {
+            allocator.free(slug);
+            return try allocator.dupe(u8, "");
+        }
+
+        var last_separator_pos: ?usize = null;
+        var i: usize = 0;
+        while (i < slug.len and i < max_length) : (i += 1) {
+            if (slug[i] == self.options.separator) {
+                last_separator_pos = i;
             }
         }
 
-        if (latin.mapLatinCodepoint(cp)) |mapping| {
-            return mapping;
-        }
+        const truncate_at = if (last_separator_pos) |pos| blk: {
+            break :blk pos;
+        } else blk: {
+            break :blk max_length;
+        };
 
-        if (cyrillic.mapCyrillicCodepoint(cp)) |mapping| {
-            return mapping;
-        }
+        const truncated = try allocator.dupe(u8, slug[0..truncate_at]);
+        allocator.free(slug);
 
-        if (cjk.mapCJKCodepoint(cp)) |mapping| {
-            return mapping;
-        }
-
-        if (rtl.mapRTLCodepoint(cp)) |mapping| {
-            return mapping;
-        }
-
-        return null;
+        return truncated;
     }
 };
 
@@ -640,4 +660,67 @@ test "transliterator mixed rtl content" {
     const result = try trans.slugify("Hello سلام World", allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("hello-slam-world", result);
+}
+
+test "smart truncation - no truncation needed" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 20 });
+
+    const result = try trans.slugify("Hello World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-world", result);
+}
+
+test "smart truncation - truncate at word boundary" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 10 });
+
+    const result = try trans.slugify("Hello World Test", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello", result);
+}
+
+test "smart truncation - exact boundary" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 10 });
+
+    const result = try trans.slugify("Hello World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello", result);
+}
+
+test "smart truncation - no separators" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 5 });
+
+    const result = try trans.slugify("HelloWorld", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello", result);
+}
+
+test "smart truncation - very short limit" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 2 });
+
+    const result = try trans.slugify("Hello World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("he", result);
+}
+
+test "smart truncation - zero length" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 0 });
+
+    const result = try trans.slugify("Hello World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("", result);
+}
+
+test "smart truncation - with unicode" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .max_length = 15, .unicode_mode = .transliterate, .language = .zh });
+
+    const result = try trans.slugify("Hello 你好 World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-nihao", result);
 }
