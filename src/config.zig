@@ -40,6 +40,9 @@ pub const Language = enum {
     zh, // Chinese (Simplified & Traditional)
     ja, // Japanese
     ko, // Korean
+    ar, // Arabic
+    he, // Hebrew
+    fa, // Persian/Farsi
 };
 
 /// Configuration options for slug generation.
