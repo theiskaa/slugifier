@@ -61,6 +61,7 @@ pub fn classifyCodepoint(codepoint: u21) CodepointClass {
     }
 
     if (isLatinScript(codepoint)) return .unicode_letter;
+    if (isCyrillicScript(codepoint)) return .unicode_letter;
     if (isEmoji(codepoint)) return .emoji;
 
     // Default to separator for unknown Unicode (will be replaced with separator)
@@ -78,6 +79,23 @@ pub fn isLatinScript(codepoint: u21) bool {
         0x0100...0x017F => true,
         // Latin Extended-B
         0x0180...0x024F => true,
+        else => false,
+    };
+}
+
+/// Checks if a codepoint is in the Cyrillic script family
+pub fn isCyrillicScript(codepoint: u21) bool {
+    return switch (codepoint) {
+        // Cyrillic Basic
+        0x0400...0x04FF => true,
+        // Cyrillic Extended-A
+        0x0500...0x052F => true,
+        // Cyrillic Extended-B
+        0x0530...0x058F => true,
+        // Cyrillic Extended-C
+        0x1C80...0x1C8F => true,
+        // Cyrillic Extended-D
+        0x1E030...0x1E08F => true,
         else => false,
     };
 }
@@ -130,6 +148,8 @@ test "codepoint classification" {
     try std.testing.expectEqual(CodepointClass.ascii_separator, classifyCodepoint(' '));
     try std.testing.expectEqual(CodepointClass.ascii_separator, classifyCodepoint('-'));
     try std.testing.expectEqual(CodepointClass.unicode_letter, classifyCodepoint(0xE9)); // é
+    try std.testing.expectEqual(CodepointClass.unicode_letter, classifyCodepoint(0x0410)); // А
+    try std.testing.expectEqual(CodepointClass.unicode_letter, classifyCodepoint(0x0430)); // а
     try std.testing.expectEqual(CodepointClass.emoji, classifyCodepoint(0x1F600)); // 😀
 }
 
@@ -138,4 +158,13 @@ test "latin script detection" {
     try std.testing.expect(isLatinScript(0xE9)); // é
     try std.testing.expect(isLatinScript(0x100)); // Ā
     try std.testing.expect(!isLatinScript(0x4E00)); // 一 (Chinese)
+}
+
+test "cyrillic script detection" {
+    try std.testing.expect(isCyrillicScript(0x0410)); // А
+    try std.testing.expect(isCyrillicScript(0x0430)); // а
+    try std.testing.expect(isCyrillicScript(0x0404)); // Є
+    try std.testing.expect(isCyrillicScript(0x0454)); // є
+    try std.testing.expect(!isCyrillicScript('a')); // Latin
+    try std.testing.expect(!isCyrillicScript(0x4E00)); // Chinese
 }
