@@ -20,6 +20,20 @@ pub const TransliterationMode = enum {
     transliterate,
 };
 
+pub const Language = enum {
+    de, // German
+    fr, // French
+    es, // Spanish
+    ru, // Russian
+    uk, // Ukrainian
+    it, // Italian
+    pt, // Portuguese
+    nl, // Dutch
+    pl, // Polish
+    be, // Belarusian
+    sr, // Serbian
+};
+
 /// Configuration options for slug generation.
 pub const SlugifyOptions = struct {
     /// Character to use as separator between words (default: '-')
@@ -28,6 +42,8 @@ pub const SlugifyOptions = struct {
     format: SlugifyFormat = .lowercase,
     /// Unicode handling mode (default: transliterate)
     unicode_mode: TransliterationMode = .transliterate,
+    /// Language to use for transliteration (default: null)
+    language: ?Language = null,
 
     pub fn validate(self: SlugifyOptions) !void {
         // Ensure separator is valid ASCII character and not alphanumeric

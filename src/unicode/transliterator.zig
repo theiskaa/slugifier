@@ -2,6 +2,7 @@ const std = @import("std");
 const config = @import("../config.zig");
 const codepoint = @import("codepoint.zig");
 const latin = @import("mappings/latin.zig");
+const cyrillic = @import("mappings/cyrillic.zig");
 
 /// The main transliterator engine.
 /// Handles the transliteration of Unicode characters to ASCII equivalents.
@@ -100,24 +101,32 @@ pub const Transliterator = struct {
 
     /// Transliterates a Unicode codepoint to ASCII equivalent if possible
     fn transliterateCodepoint(self: *Transliterator, cp: u21) ?[]const u8 {
-        _ = self;
+        if (self.options.language) |lang| {
+            const lang_mapping = switch (lang) {
+                .de => latin.mapGermanCodepoint(cp),
+                .fr => latin.mapFrenchCodepoint(cp),
+                .es => latin.mapSpanishCodepoint(cp),
+                .ru => cyrillic.mapRussianCodepoint(cp),
+                .uk => cyrillic.mapUkrainianCodepoint(cp),
+                .it => latin.mapItalianCodepoint(cp),
+                .pt => latin.mapPortugueseCodepoint(cp),
+                .nl => latin.mapDutchCodepoint(cp),
+                .pl => latin.mapPolishCodepoint(cp),
+                .be => cyrillic.mapBelarusianCodepoint(cp),
+                .sr => cyrillic.mapSerbianCodepoint(cp),
+            };
+            if (lang_mapping) |mapping| {
+                return mapping;
+            }
+        }
 
-        // FIXME: we only have latting mappings for now.
         if (latin.mapLatinCodepoint(cp)) |mapping| {
             return mapping;
         }
 
-        // TODO: Add language-specific mappings here
-        // if (self.options.language) |lang| {
-        //     switch (lang) {
-        //         "de" => return latin.mapGermanCodepoint(cp),
-        //         "fr" => return latin.mapFrenchCodepoint(cp),
-        //         "es" => return latin.mapSpanishCodepoint(cp),
-        //         else => {},
-        //     }
-        // }
-
-        // TODO: Add other script mappings (Cyrillic, etc.)
+        if (cyrillic.mapCyrillicCodepoint(cp)) |mapping| {
+            return mapping;
+        }
 
         return null;
     }
@@ -175,4 +184,240 @@ test "transliterator case formatting" {
     const result = try trans.slugify("Café naïve", allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("CAFE-NAIVE", result);
+}
+
+test "transliterator cyrillic transliteration" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .unicode_mode = .transliterate });
+
+    const result = try trans.slugify("Привет мир", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("privet-mir", result);
+}
+
+test "transliterator mixed cyrillic and latin" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{ .unicode_mode = .transliterate });
+
+    const result = try trans.slugify("Hello Привет World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-privet-world", result);
+}
+
+test "transliterator ukrainian characters" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .uk,
+    });
+
+    const result = try trans.slugify("Привіт світ", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("privit-svit", result);
+}
+
+test "transliterator language-specific german" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .de,
+    });
+
+    const result = try trans.slugify("Müllerstraße", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("muellerstrasse", result);
+}
+
+test "transliterator language-specific french" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .fr,
+    });
+
+    const result = try trans.slugify("Cœur et Âme", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("coeur-et-ame", result);
+}
+
+test "transliterator language-specific spanish" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .es,
+    });
+
+    const result = try trans.slugify("Niño y Señor", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("nino-y-senor", result);
+}
+
+test "transliterator language-specific russian" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ru,
+    });
+
+    const result = try trans.slugify("Привет мир", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("privet-mir", result);
+}
+
+test "transliterator language-specific ukrainian" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .uk,
+    });
+
+    const result = try trans.slugify("Привіт світ", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("privit-svit", result);
+}
+
+test "transliterator language-specific polish" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .pl,
+    });
+
+    const result = try trans.slugify("Łódź i Warszawa", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("lodz-i-warszawa", result);
+}
+
+test "transliterator language-specific belarusian" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .be,
+    });
+
+    const result = try trans.slugify("Прывітанне свет", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("pryvitanne-svet", result);
+}
+
+test "transliterator language-specific serbian" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .sr,
+    });
+
+    const result = try trans.slugify("Здраво свете", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("zdravo-svete", result);
+}
+
+test "transliterator fallback to generic mappings" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .de, // German language specified
+    });
+
+    // Test that non-German characters still get transliterated using generic mappings
+    const result = try trans.slugify("Café naïve", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("cafe-naive", result);
+}
+
+test "transliterator mixed scripts with language" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ru,
+    });
+
+    const result = try trans.slugify("Hello Привет World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-privet-world", result);
+}
+
+test "transliterator case formatting with language" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .de,
+        .format = .uppercase,
+    });
+
+    const result = try trans.slugify("Müllerstraße", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("MUELLERSTRASSE", result);
+}
+
+test "transliterator custom separator with language" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .fr,
+        .separator = '_',
+    });
+
+    const result = try trans.slugify("Cœur et Âme", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("coeur_et_ame", result);
+}
+
+test "transliterator comprehensive language support" {
+    const allocator = std.testing.allocator;
+
+    // Test all supported languages
+    const test_cases = [_]struct {
+        language: config.Language,
+        input: []const u8,
+        expected: []const u8,
+    }{
+        .{ .language = .de, .input = "Müllerstraße", .expected = "muellerstrasse" },
+        .{ .language = .fr, .input = "Cœur et Âme", .expected = "coeur-et-ame" },
+        .{ .language = .es, .input = "Niño y Señor", .expected = "nino-y-senor" },
+        .{ .language = .ru, .input = "Привет мир", .expected = "privet-mir" },
+        .{ .language = .uk, .input = "Привіт світ", .expected = "privit-svit" },
+        .{ .language = .pl, .input = "Łódź i Warszawa", .expected = "lodz-i-warszawa" },
+        .{ .language = .be, .input = "Прывітанне свет", .expected = "pryvitanne-svet" },
+        .{ .language = .sr, .input = "Здраво свете", .expected = "zdravo-svete" },
+    };
+
+    for (test_cases) |case| {
+        var trans = Transliterator.init(config.SlugifyOptions{
+            .unicode_mode = .transliterate,
+            .language = case.language,
+        });
+
+        const result = try trans.slugify(case.input, allocator);
+        defer allocator.free(result);
+        try std.testing.expectEqualStrings(case.expected, result);
+    }
+}
+
+test "transliterator fallback behavior" {
+    const allocator = std.testing.allocator;
+
+    // Test that when no language is specified, it falls back to generic mappings
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+    });
+
+    const result = try trans.slugify("Café naïve Привет", allocator);
+    defer allocator.free(result);
+    // Should transliterate both Latin and Cyrillic characters using generic mappings
+    try std.testing.expectEqualStrings("cafe-naive-privet", result);
+}
+
+test "transliterator mixed language content" {
+    const allocator = std.testing.allocator;
+
+    // Test mixed content with language specification
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ru,
+    });
+
+    const result = try trans.slugify("Hello Привет World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-privet-world", result);
 }
