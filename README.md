@@ -55,15 +55,17 @@ The `slugify()` function returns an allocated string that the caller must manage
 
 Configuration options include separator character selection (any non-alphanumeric ASCII character), case formatting (lowercase, uppercase, or preserve original), Unicode processing mode (strip, preserve, or transliterate), and optional language specification for culturally accurate transliteration. When a language is specified, the transliterator applies language-specific character mappings while falling back to generic mappings for characters outside that language's scope.
 
+Import the library:
 ```zig
 const slugifier = @import("slugifier");
-
-// Basic usage with default options
+```
+Basic usage with default options:
+```zig
 const result = try slugifier.slugify("Hello, World!", .{}, allocator);
-defer allocator.free(result);
-// Result: "hello-world"
-
-// Advanced configuration with language-specific transliteration
+defer allocator.free(result); // Result: "hello-world"
+```
+Advanced configuration with language-specific transliteration:
+```zig
 const options = slugifier.SlugifyOptions{
     .separator = '_',
     .format = .uppercase,
@@ -72,13 +74,13 @@ const options = slugifier.SlugifyOptions{
 };
 
 const german_result = try slugifier.slugify("Müllerstraße", options, allocator);
-defer allocator.free(german_result);
-// Result: "MUELLERSTRASSE"
+defer allocator.free(german_result); // Result: "MUELLERSTRASSE"
+```
 
-// Mixed script handling
+Mixed script handling
+```zig
 const mixed_result = try slugifier.slugify("Hello 你好 Привет", .{}, allocator);
-defer allocator.free(mixed_result);
-// Result: "hello-nihao-privet"
+defer allocator.free(mixed_result); // Result: "hello-nihao-privet"
 ```
 
 The library automatically detects and processes multiple Unicode scripts within the same input. When language-specific settings are configured, the transliterator prioritizes those mappings while falling back to generic script mappings for characters outside the specified language. This approach ensures comprehensive text processing regardless of input complexity.
