@@ -112,8 +112,13 @@ pub const Transliterator = struct {
                 .pt => latin.mapPortugueseCodepoint(cp),
                 .nl => latin.mapDutchCodepoint(cp),
                 .pl => latin.mapPolishCodepoint(cp),
+                .cz => latin.mapCzechCodepoint(cp),
                 .be => cyrillic.mapBelarusianCodepoint(cp),
                 .sr => cyrillic.mapSerbianCodepoint(cp),
+                .sv => latin.mapSwedishCodepoint(cp),
+                .no => latin.mapNorwegianCodepoint(cp),
+                .da => latin.mapDanishCodepoint(cp),
+                .fi => latin.mapFinnishCodepoint(cp),
             };
             if (lang_mapping) |mapping| {
                 return mapping;
@@ -312,6 +317,66 @@ test "transliterator language-specific serbian" {
     try std.testing.expectEqualStrings("zdravo-svete", result);
 }
 
+test "transliterator language-specific czech" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .cz,
+    });
+
+    const result = try trans.slugify("Čeština řeč", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("cestina-rec", result);
+}
+
+test "transliterator language-specific swedish" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .sv,
+    });
+
+    const result = try trans.slugify("Åsa och Östen", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("asa-och-osten", result);
+}
+
+test "transliterator language-specific norwegian" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .no,
+    });
+
+    const result = try trans.slugify("Øl og Æbler", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("ol-og-aebler", result);
+}
+
+test "transliterator language-specific danish" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .da,
+    });
+
+    const result = try trans.slugify("Køb Æbler", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("kob-aebler", result);
+}
+
+test "transliterator language-specific finnish" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .fi,
+    });
+
+    const result = try trans.slugify("Äiti ja Öljy", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("aiti-ja-oljy", result);
+}
+
 test "transliterator fallback to generic mappings" {
     const allocator = std.testing.allocator;
     var trans = Transliterator.init(config.SlugifyOptions{
@@ -378,8 +443,13 @@ test "transliterator comprehensive language support" {
         .{ .language = .ru, .input = "Привет мир", .expected = "privet-mir" },
         .{ .language = .uk, .input = "Привіт світ", .expected = "privit-svit" },
         .{ .language = .pl, .input = "Łódź i Warszawa", .expected = "lodz-i-warszawa" },
+        .{ .language = .cz, .input = "Čeština řeč", .expected = "cestina-rec" },
         .{ .language = .be, .input = "Прывітанне свет", .expected = "pryvitanne-svet" },
         .{ .language = .sr, .input = "Здраво свете", .expected = "zdravo-svete" },
+        .{ .language = .sv, .input = "Åsa och Östen", .expected = "asa-och-osten" },
+        .{ .language = .no, .input = "Øl og Æbler", .expected = "ol-og-aebler" },
+        .{ .language = .da, .input = "Køb Æbler", .expected = "kob-aebler" },
+        .{ .language = .fi, .input = "Äiti ja Öljy", .expected = "aiti-ja-oljy" },
     };
 
     for (test_cases) |case| {
