@@ -3,6 +3,7 @@ const config = @import("../config.zig");
 const codepoint = @import("codepoint.zig");
 const latin = @import("mappings/latin.zig");
 const cyrillic = @import("mappings/cyrillic.zig");
+const cjk = @import("mappings/cjk.zig");
 
 /// The main transliterator engine.
 /// Handles the transliteration of Unicode characters to ASCII equivalents.
@@ -119,6 +120,9 @@ pub const Transliterator = struct {
                 .no => latin.mapNorwegianCodepoint(cp),
                 .da => latin.mapDanishCodepoint(cp),
                 .fi => latin.mapFinnishCodepoint(cp),
+                .zh => cjk.mapChineseCodepoint(cp),
+                .ja => cjk.mapJapaneseCodepoint(cp),
+                .ko => cjk.mapKoreanCodepoint(cp),
             };
             if (lang_mapping) |mapping| {
                 return mapping;
@@ -130,6 +134,10 @@ pub const Transliterator = struct {
         }
 
         if (cyrillic.mapCyrillicCodepoint(cp)) |mapping| {
+            return mapping;
+        }
+
+        if (cjk.mapCJKCodepoint(cp)) |mapping| {
             return mapping;
         }
 
@@ -377,6 +385,42 @@ test "transliterator language-specific finnish" {
     try std.testing.expectEqualStrings("aiti-ja-oljy", result);
 }
 
+test "transliterator language-specific chinese" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .zh,
+    });
+
+    const result = try trans.slugify("你好 大", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("nihao-da", result);
+}
+
+test "transliterator language-specific japanese" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ja,
+    });
+
+    const result = try trans.slugify("こんにちは", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("konnichiha", result);
+}
+
+test "transliterator language-specific korean" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ko,
+    });
+
+    const result = try trans.slugify("안 한국", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("an-hangug", result);
+}
+
 test "transliterator fallback to generic mappings" {
     const allocator = std.testing.allocator;
     var trans = Transliterator.init(config.SlugifyOptions{
@@ -450,6 +494,9 @@ test "transliterator comprehensive language support" {
         .{ .language = .no, .input = "Øl og Æbler", .expected = "ol-og-aebler" },
         .{ .language = .da, .input = "Køb Æbler", .expected = "kob-aebler" },
         .{ .language = .fi, .input = "Äiti ja Öljy", .expected = "aiti-ja-oljy" },
+        .{ .language = .zh, .input = "你好 大", .expected = "nihao-da" },
+        .{ .language = .ja, .input = "こんにちは", .expected = "konnichiha" },
+        .{ .language = .ko, .input = "안 한국", .expected = "an-hangug" },
     };
 
     for (test_cases) |case| {
@@ -490,4 +537,32 @@ test "transliterator mixed language content" {
     const result = try trans.slugify("Hello Привет World", allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("hello-privet-world", result);
+}
+
+test "transliterator cjk fallback behavior" {
+    const allocator = std.testing.allocator;
+
+    // Test CJK characters with generic mappings (no language specified)
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+    });
+
+    const result = try trans.slugify("Hello! World こんにちは", allocator);
+    defer allocator.free(result);
+    // CJK characters with no language specified use generic mappings, hiragana maps to romaji
+    try std.testing.expectEqualStrings("hello-world-konnichiha", result);
+}
+
+test "transliterator mixed cjk content" {
+    const allocator = std.testing.allocator;
+
+    // Test mixed CJK content with Chinese language specified
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .zh,
+    });
+
+    const result = try trans.slugify("Hello 你好 World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-nihao-world", result);
 }
