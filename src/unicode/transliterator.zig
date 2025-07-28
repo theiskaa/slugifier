@@ -4,6 +4,7 @@ const codepoint = @import("codepoint.zig");
 const latin = @import("mappings/latin.zig");
 const cyrillic = @import("mappings/cyrillic.zig");
 const cjk = @import("mappings/cjk.zig");
+const rtl = @import("mappings/rtl.zig");
 
 /// The main transliterator engine.
 /// Handles the transliteration of Unicode characters to ASCII equivalents.
@@ -123,6 +124,9 @@ pub const Transliterator = struct {
                 .zh => cjk.mapChineseCodepoint(cp),
                 .ja => cjk.mapJapaneseCodepoint(cp),
                 .ko => cjk.mapKoreanCodepoint(cp),
+                .ar => rtl.mapArabicCodepoint(cp),
+                .he => rtl.mapHebrewCodepoint(cp),
+                .fa => rtl.mapPersianCodepoint(cp),
             };
             if (lang_mapping) |mapping| {
                 return mapping;
@@ -138,6 +142,10 @@ pub const Transliterator = struct {
         }
 
         if (cjk.mapCJKCodepoint(cp)) |mapping| {
+            return mapping;
+        }
+
+        if (rtl.mapRTLCodepoint(cp)) |mapping| {
             return mapping;
         }
 
@@ -497,6 +505,9 @@ test "transliterator comprehensive language support" {
         .{ .language = .zh, .input = "你好 大", .expected = "nihao-da" },
         .{ .language = .ja, .input = "こんにちは", .expected = "konnichiha" },
         .{ .language = .ko, .input = "안 한국", .expected = "an-hangug" },
+        .{ .language = .ar, .input = "سلام العالم", .expected = "slam-alalm" },
+        .{ .language = .he, .input = "שלום הבה", .expected = "shlvm-hbh" },
+        .{ .language = .fa, .input = "سلام پارسی", .expected = "slam-parsi" },
     };
 
     for (test_cases) |case| {
@@ -565,4 +576,68 @@ test "transliterator mixed cjk content" {
     const result = try trans.slugify("Hello 你好 World", allocator);
     defer allocator.free(result);
     try std.testing.expectEqualStrings("hello-nihao-world", result);
+}
+
+test "transliterator language-specific arabic" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ar,
+    });
+
+    const result = try trans.slugify("سلام العالم", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("slam-alalm", result);
+}
+
+test "transliterator language-specific hebrew" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .he,
+    });
+
+    const result = try trans.slugify("שלום הבה", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("shlvm-hbh", result);
+}
+
+test "transliterator language-specific persian" {
+    const allocator = std.testing.allocator;
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .fa,
+    });
+
+    const result = try trans.slugify("سلام پارسی", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("slam-parsi", result);
+}
+
+test "transliterator rtl fallback behavior" {
+    const allocator = std.testing.allocator;
+
+    // Test RTL characters with generic mappings (no language specified)
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+    });
+
+    const result = try trans.slugify("Hello سلام World", allocator);
+    defer allocator.free(result);
+    // Should use generic RTL mappings (tries Hebrew, then Arabic, then Persian)
+    try std.testing.expectEqualStrings("hello-slam-world", result);
+}
+
+test "transliterator mixed rtl content" {
+    const allocator = std.testing.allocator;
+
+    // Test mixed RTL content with Arabic language specified
+    var trans = Transliterator.init(config.SlugifyOptions{
+        .unicode_mode = .transliterate,
+        .language = .ar,
+    });
+
+    const result = try trans.slugify("Hello سلام World", allocator);
+    defer allocator.free(result);
+    try std.testing.expectEqualStrings("hello-slam-world", result);
 }
