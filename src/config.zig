@@ -30,8 +30,13 @@ pub const Language = enum {
     pt, // Portuguese
     nl, // Dutch
     pl, // Polish
+    cz, // Czech
     be, // Belarusian
     sr, // Serbian
+    sv, // Swedish
+    no, // Norwegian
+    da, // Danish
+    fi, // Finnish
 };
 
 /// Configuration options for slug generation.
